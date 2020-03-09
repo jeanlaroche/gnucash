@@ -204,6 +204,7 @@ gnc_get_shared_account_name_quickfill (Account *root, const char * key,
     QFB *qfb;
     QofBook *book;
 
+    printf("QUICKFILL");
     book = gnc_account_get_book (root);
     qfb = qof_book_get_data (book, key);
 
@@ -309,6 +310,7 @@ listen_for_account_events (QofInstance *entity, QofEventId event_type,
             new_name = gnc_get_account_name_for_register (account);
 
             /* check if the name has changed */
+
             match = gnc_quickfill_get_string_match (qf, old_name);
             if (match && (g_strcmp0 (old_name, new_name) != 0))
                 gnc_quickfill_remove (qf, old_name, QUICKFILL_ALPHA);
@@ -383,6 +385,7 @@ listen_for_account_events (QofInstance *entity, QofEventId event_type,
         if (qfb->dont_add_cb &&
                 qfb->dont_add_cb (account, qfb->dont_add_data))
             break;
+
 
         match = gnc_quickfill_get_string_match (qf, name);
         if (match)

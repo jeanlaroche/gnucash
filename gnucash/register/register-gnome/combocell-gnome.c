@@ -543,6 +543,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         gnc_basic_cell_set_value_internal (_cell, newval);
         return;
     }
+    printf("THIS IS WHERE IT HAPPENS\n");
 
     match = gnc_quickfill_get_string_match (box->qf, newval);
 
@@ -579,6 +580,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     unblock_list_signals (cell);
 
     gnc_basic_cell_set_value_internal (_cell, match_str);
+    printf("Match_Str %s\n",match_str);
 }
 
 static gboolean
