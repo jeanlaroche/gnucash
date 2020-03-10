@@ -120,6 +120,7 @@ load_shared_qf_cb (Account *account, gpointer data)
     char *name;
     GtkTreeIter iter;
 
+    // A callback to disable adding the account
     if (qfb->dont_add_cb)
     {
         gboolean skip = (qfb->dont_add_cb) (account, qfb->dont_add_data);
@@ -128,6 +129,8 @@ load_shared_qf_cb (Account *account, gpointer data)
     }
 
     name = gnc_get_account_name_for_register (account);
+    // THIS IS WHERE THE ACCOUNT NAMES ARE COLLECTED.
+    printf("Account name %s\n",name);
     if (NULL == name)
         return;
     gnc_quickfill_insert (qfb->qf, name, QUICKFILL_ALPHA);
