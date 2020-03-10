@@ -1019,6 +1019,7 @@ gnucash_sheet_insert_cb (GtkWidget *widget,
         g_signal_handler_block (G_OBJECT (sheet->entry),
                                 sheet->delete_signal);
 
+        // TODO: JEAN: WHERE THE EDIT CELL GETS CHANGED
         gtk_entry_set_text (GTK_ENTRY (sheet->entry), retval);
 
         g_signal_handler_unblock (G_OBJECT (sheet->entry),
@@ -1050,6 +1051,7 @@ gnucash_sheet_insert_cb (GtkWidget *widget,
     else if (*position < 0)
         *position = g_utf8_strlen(retval, -1);
 
+    // TODO: JEAN: WHERE THE SELECTION IS UPDATED.
     if (start_sel != end_sel)
         gtk_editable_select_region(editable, start_sel, end_sel);
     /* Save the selected region in case the input module eats it. */

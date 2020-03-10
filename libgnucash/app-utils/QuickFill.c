@@ -31,7 +31,7 @@
 #include "gnc-engine.h"
 #include "gnc-ui-util.h"
 
-
+// JEAN: QuickFill Structure
 struct _QuickFill
 {
     char *text;          /* the first matching text string     */

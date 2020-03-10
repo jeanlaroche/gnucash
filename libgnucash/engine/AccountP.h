@@ -56,6 +56,7 @@ extern "C" {
 */
 
 /** \struct Account */
+// JEAN THE ACCOUNT PRIVATE STRUCTURE
 typedef struct AccountPrivate
 {
     /* The accountName is an arbitrary string assigned by the user.
