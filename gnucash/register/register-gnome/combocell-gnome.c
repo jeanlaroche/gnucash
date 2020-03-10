@@ -543,11 +543,44 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         gnc_basic_cell_set_value_internal (_cell, newval);
         return;
     }
-    printf("THIS IS WHERE IT HAPPENS\n");
-
+    // JEAN: WHERE THE MATCH OCCURS
     match = gnc_quickfill_get_string_match (box->qf, newval);
-
     match_str = gnc_quickfill_string (match);
+    
+    gboolean new_search = 1;
+    g_print ("__________________________\nNormal match: %s\n", match_str);
+    
+    if (new_search) {
+        cell->shared_store;
+        GtkTreeIter iter;
+        gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(cell->shared_store), &iter);
+        gchar *str_data;
+        gchar* low_newval = g_ascii_strdown(newval,-1);
+        gboolean found=FALSE;
+        while (valid)
+        {
+            /* Walk through the list, reading each row */
+            gtk_tree_model_get (GTK_TREE_MODEL(cell->shared_store), &iter,0, &str_data,-1);
+            gchar* low_str_data = g_ascii_strdown(str_data,-1);
+            gchar * ret = g_strrstr(low_str_data, low_newval);
+            if(ret!=NULL) {
+                g_print ("Found: %s to match %s\n", str_data,newval);
+                found = TRUE;
+                break;
+            }
+            valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(cell->shared_store), &iter);
+        }
+        if(!found)
+        {
+            g_print("Found no match for %s\n",newval);
+            match_str = NULL;
+        }
+        else
+        {
+            match_str = str_data;
+            match = gnc_quickfill_get_string_match (box->qf, str_data);
+        }
+    }
 
     if ((match == NULL) || (match_str == NULL))
     {
@@ -560,9 +593,16 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         return;
     }
 
-    *start_selection = newval_chars;
-    *end_selection = -1;
-    *cursor_position += change_chars;
+    if(!new_search) {
+        *start_selection = newval_chars;
+        *end_selection = -1;
+        *cursor_position += change_chars;
+    }
+    else {
+        *start_selection = newval_chars;
+        *end_selection = -1;
+        *cursor_position = newval_chars;
+    }
 
     if (!box->list_popped)
         pop_list = auto_pop_combos;
@@ -579,7 +619,12 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     gnc_item_list_select (box->item_list, match_str);
     unblock_list_signals (cell);
 
-    gnc_basic_cell_set_value_internal (_cell, match_str);
+    if(!new_search) {
+        gnc_basic_cell_set_value_internal (_cell, match_str);
+    }
+    else {
+        gnc_basic_cell_set_value_internal (_cell, newval);
+    }
     printf("Match_Str %s\n",match_str);
 }
 
