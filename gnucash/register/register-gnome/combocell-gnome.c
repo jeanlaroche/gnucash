@@ -407,27 +407,38 @@ gnc_combo_cell_use_quickfill_cache (ComboCell * cell, QuickFill *shared_qf)
     box->qf = shared_qf;
 }
 
-void
-gnc_combo_cell_use_list_store_cache (ComboCell * cell, gpointer data)
+void gnc_combo_cell_backup_store(ComboCell * cell)
 {
-    if (cell == NULL) return;
-
-    cell->shared_store = data;
-    // JEAN: WHERE TO COPY THE INITIAL CACHE?
-    cell->shared_store2 = gtk_list_store_new (1, G_TYPE_STRING);
+    // JEAN: WHERE TO COPY THE INITIAL LIST?
+    if(cell->shared_store2 == NULL)
+        cell->shared_store2 = gtk_list_store_new (1, G_TYPE_STRING);
+    else {
+        // JEAN: EMPTY THE STORE.
+    }
+        
     g_print("COPY!!!!!!!!!");
     GtkTreeIter iter;
     gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(cell->shared_store), &iter);
-    gchar *str_data;
+    gchar *str_data = NULL;
     while (valid)
     {
         gtk_tree_model_get (GTK_TREE_MODEL(cell->shared_store), &iter,0, &str_data,-1);
         GtkTreeIter iter2;
         gtk_list_store_append(cell->shared_store2, &iter2);
         gtk_list_store_set(cell->shared_store2, &iter2, 0, str_data, -1);
-        g_free(str_data);
         valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(cell->shared_store), &iter);
+        g_free(str_data);
     }
+}
+
+void
+gnc_combo_cell_use_list_store_cache (ComboCell * cell, gpointer data)
+{
+    if (cell == NULL) return;
+
+    cell->shared_store = data;
+    // Make a copy of our list, we'll need it for the autocompletion.
+    gnc_combo_cell_backup_store(cell);
 }
 
 void
@@ -602,20 +613,19 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         }
         else
         {
-            match_str = first_found;
             // This isn't needed, just to ensure non-null below. silly
             match = gnc_quickfill_get_string_match (box->qf, first_found);
+            match_str = first_found;
         }
     }
 
-    if ((match == NULL) || (match_str == NULL))
+    if ((!new_search && match == NULL) || (match_str == NULL))
     {
         gnc_basic_cell_set_value_internal (_cell, newval);
 
         block_list_signals (cell);
         gnc_item_list_select (box->item_list, NULL);
         unblock_list_signals (cell);
-        g_free(first_found);
         return;
     }
 

@@ -100,7 +100,7 @@ void         gnc_combo_cell_set_autosize (ComboCell *cell, gboolean autosize);
  *  quickfill object.  The combocell will *not* make a copy of the quickfill.
  */
 void gnc_combo_cell_use_quickfill_cache (ComboCell *cell, QuickFill *shared_qf);
-
+void gnc_combo_cell_backup_store(ComboCell * cell);
 void gnc_combo_cell_use_list_store_cache (ComboCell * cell, gpointer data);
 
 /** @} */
