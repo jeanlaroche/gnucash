@@ -819,9 +819,8 @@ gnc_split_register_load_xfer_cells (SplitRegister *reg, Account *base_account)
         return;
 
     printf("TRIGGER QUICKFILL GENERATION\n");
-    // JEAN: Acc name Quickfill generated here
     qf = gnc_get_shared_account_name_quickfill (root, QKEY, skip_cb, NULL);
-    // JEAN: Acc name List Store generated here, and assigned to cell.
+    // JEAN: LIST STORE ASSIGNED TO CELL.
     store = gnc_get_shared_account_name_list_store (root, QKEY, skip_cb, NULL);
 
     cell = (ComboCell *)

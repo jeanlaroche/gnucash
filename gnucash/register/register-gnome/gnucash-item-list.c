@@ -306,6 +306,7 @@ gnc_item_list_key_event (GtkWidget *widget, GdkEventKey *event, gpointer data)
 
     switch (event->keyval)
     {
+            // JEAN: WHERE RETURN IS HANDLED
     case GDK_KEY_Return:
         selection = gtk_tree_view_get_selection (item_list->tree_view);
         if (!gtk_tree_selection_get_selected (selection, &model, &iter))

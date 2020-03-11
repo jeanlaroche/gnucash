@@ -550,13 +550,15 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     gboolean new_search = 1;
     g_print ("__________________________\nNormal match: %s\n", match_str);
     
+    int num_found=0;
+    gchar *first_found = NULL;
     if (new_search) {
         cell->shared_store;
         GtkTreeIter iter;
         gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(cell->shared_store), &iter);
         gchar *str_data;
         gchar* low_newval = g_ascii_strdown(newval,-1);
-        gboolean found=FALSE;
+//        gnc_item_list_clear(box->item_list);
         while (valid)
         {
             /* Walk through the list, reading each row */
@@ -565,20 +567,23 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
             gchar * ret = g_strrstr(low_str_data, low_newval);
             if(ret!=NULL) {
                 g_print ("Found: %s to match %s\n", str_data,newval);
-                found = TRUE;
-                break;
+                if(!num_found) first_found = g_strdup(str_data);
+                num_found ++;
+//                gnc_item_list_append (box->item_list, str_data);
+//                break;
             }
+            g_free(str_data);
             valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(cell->shared_store), &iter);
         }
-        if(!found)
+        if(!num_found)
         {
             g_print("Found no match for %s\n",newval);
             match_str = NULL;
         }
         else
         {
-            match_str = str_data;
-            match = gnc_quickfill_get_string_match (box->qf, str_data);
+            match_str = first_found;
+            match = gnc_quickfill_get_string_match (box->qf, first_found);
         }
     }
 
@@ -589,7 +594,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         block_list_signals (cell);
         gnc_item_list_select (box->item_list, NULL);
         unblock_list_signals (cell);
-
+        g_free(first_found);
         return;
     }
 
@@ -626,6 +631,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         gnc_basic_cell_set_value_internal (_cell, newval);
     }
     printf("Match_Str %s\n",match_str);
+    g_free(first_found);
 }
 
 static gboolean
