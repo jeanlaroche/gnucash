@@ -580,52 +580,54 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     match_str = gnc_quickfill_string (match);
     GtkListStore* the_store = cell->shared_store_full;
 
-    gboolean new_search = (match==NULL || match_str == NULL) || 1;
-    g_print ("__________________________\new search %d val %s\n", new_search,newval);
+    gboolean type_ahead_search = (match==NULL || match_str == NULL) && 0;
+    g_print ("__________________________\new search %d val %s\n", type_ahead_search,newval);
     // JEAN: For the two searches to work I have to re-fill box->item_list when I go back
     // to old search. Not sure whether that's costly or not.
     
     int num_found=0;
     gchar *first_found = NULL;
-    if (new_search) {
+    if (type_ahead_search) {
+        gchar *str_data;
+        // Lowercase search string to do case-independent match.
+        gchar* low_newval = g_ascii_strdown(newval,-1);
+        // Clear result list.
+        gnc_item_list_clear(box->item_list);
+        
         GtkTreeIter iter;
         gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(the_store), &iter);
-        gchar *str_data;
-        gchar* low_newval = g_ascii_strdown(newval,-1);
-        gnc_item_list_clear(box->item_list);
-
         while (valid)
         {
-            /* Walk through the list, reading each row */
             gtk_tree_model_get (GTK_TREE_MODEL(the_store), &iter,0, &str_data,-1);
             gchar* low_str_data = g_ascii_strdown(str_data,-1);
+            // Does low_str_data contain low_newval>?
             gchar * ret = g_strrstr(low_str_data, low_newval);
             if(ret!=NULL) {
-                //g_print ("Found: %s to match %s\n", str_data,newval);
+                // We have match.
                 if(!num_found) first_found = g_strdup(str_data);
                 num_found ++;
-                // The pop box can be very slow to display if it has too many items.
+                // The pop box can be very slow to display if it has too many items and it's not very useful
+                // to have many. So limit that to a reasonable number.
                 if(num_found < 30)
                     gnc_item_list_append (box->item_list, str_data);
-//                break;
             }
             g_free(str_data);
             valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(the_store), &iter);
         }
         if(!num_found)
         {
-            g_print("Found no match for %s\n",newval);
+            g_debug("Found no match for %s\n",newval);
             match_str = NULL;
         }
         else
         {
-            // This isn't needed, just to ensure non-null below. silly
+            // This is probably wasteful.
             match = gnc_quickfill_get_string_match (box->qf, first_found);
             match_str = first_found;
         }
     }
 
-    if ((!new_search && match == NULL) || (match_str == NULL))
+    if ((!type_ahead_search && match == NULL) || (match_str == NULL))
     {
         gnc_basic_cell_set_value_internal (_cell, newval);
 
@@ -635,7 +637,8 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         return;
     }
 
-    if(!new_search) {
+    if(!type_ahead_search) {
+        // For type-ahead, we let the user type freely.
         *start_selection = newval_chars;
         *end_selection = -1;
         *cursor_position += change_chars;
@@ -661,10 +664,11 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     gnc_item_list_select (box->item_list, match_str);
     unblock_list_signals (cell);
 
-    if(!new_search) {
+    if(!type_ahead_search) {
         gnc_basic_cell_set_value_internal (_cell, match_str);
     }
     else {
+        // For type-ahead, don't change what the user typed.
         gnc_basic_cell_set_value_internal (_cell, newval);
     }
     printf("Match_Str %s\n",match_str);

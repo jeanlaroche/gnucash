@@ -46,7 +46,7 @@
 #define GNC_PREFS_H
 
 #include <glib.h>
-
+// JEAN PREFERENCES
 /* Preference groups used across multiple modules */
 #define GNC_PREFS_GROUP_GENERAL           "general"
 #define GNC_PREFS_GROUP_GENERAL_REGISTER  "general.register"
