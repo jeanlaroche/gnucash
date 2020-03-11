@@ -818,7 +818,6 @@ gnc_split_register_load_xfer_cells (SplitRegister *reg, Account *base_account)
     if (root == NULL)
         return;
 
-    printf("TRIGGER QUICKFILL GENERATION\n");
     qf = gnc_get_shared_account_name_quickfill (root, QKEY, skip_cb, NULL);
     // JEAN: LIST STORE ASSIGNED TO ACCOUNT AND TRANSFER CELLs.
     store = gnc_get_shared_account_name_list_store (root, QKEY, skip_cb, NULL);

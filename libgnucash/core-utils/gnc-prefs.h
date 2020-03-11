@@ -46,7 +46,6 @@
 #define GNC_PREFS_H
 
 #include <glib.h>
-// JEAN PREFERENCES
 /* Preference groups used across multiple modules */
 #define GNC_PREFS_GROUP_GENERAL           "general"
 #define GNC_PREFS_GROUP_GENERAL_REGISTER  "general.register"
@@ -71,6 +70,8 @@
 #define GNC_PREF_DATE_BACKMONTHS     "date-backmonths"
 #define GNC_PREF_SHOW_LEAF_ACCT_NAMES "show-leaf-account-names"
 #define GNC_PREF_ENTER_MOVES_TO_END  "enter-moves-to-end"
+// JEAN PREF DEFINE
+#define GNC_PREF_TYPE_AHEAD_SEARCH  "type-ahead-search"
 /* Register preferences */
 #define GNC_PREF_DRAW_HOR_LINES      "draw-horizontal-lines"
 #define GNC_PREF_DRAW_VERT_LINES     "draw-vertical-lines"

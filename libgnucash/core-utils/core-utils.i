@@ -115,6 +115,7 @@ const char * gnc_locale_default_iso_currency_code (void);
         SET_ENUM ("GNC-PREF-DATE-BACKMONTHS");
         SET_ENUM ("GNC-PREF-SHOW-LEAF-ACCT-NAMES");
         SET_ENUM ("GNC-PREF-ENTER-MOVES-TO-END");
+        SET_ENUM ("GNC-PREF-TYPE-AHEAD-SEARCH");
         SET_ENUM ("GNC-PREF-DRAW-HOR-LINES");
         SET_ENUM ("GNC-PREF-DRAW-VERT-LINES");
         SET_ENUM ("GNC-PREF-ALT-COLOR-BY-TRANS");

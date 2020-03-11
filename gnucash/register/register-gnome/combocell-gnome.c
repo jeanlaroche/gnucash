@@ -580,7 +580,10 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     match_str = gnc_quickfill_string (match);
     GtkListStore* the_store = cell->shared_store_full;
 
-    gboolean type_ahead_search = (match==NULL || match_str == NULL) && 0;
+    gboolean type_ahead_search = gnc_prefs_get_bool(GNC_PREFS_GROUP_GENERAL_REGISTER,
+                                    GNC_PREF_TYPE_AHEAD_SEARCH);
+
+//    gboolean type_ahead_search = (match==NULL || match_str == NULL) && 0;
     g_print ("__________________________\new search %d val %s\n", type_ahead_search,newval);
     // JEAN: For the two searches to work I have to re-fill box->item_list when I go back
     // to old search. Not sure whether that's costly or not.

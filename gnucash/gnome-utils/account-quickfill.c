@@ -208,7 +208,6 @@ gnc_get_shared_account_name_quickfill (Account *root, const char * key,
     QFB *qfb;
     QofBook *book;
 
-    printf("QUICKFILL");
     book = gnc_account_get_book (root);
     qfb = qof_book_get_data (book, key);
 
