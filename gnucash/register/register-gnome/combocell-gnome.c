@@ -424,8 +424,10 @@ void gnc_combo_cell_backup_store(ComboCell * cell)
     {
         gtk_tree_model_get (GTK_TREE_MODEL(cell->shared_store), &iter,0, &str_data,-1);
         GtkTreeIter iter2;
+        for(int i=0;i<20;i++) {
         gtk_list_store_append(cell->shared_store2, &iter2);
         gtk_list_store_set(cell->shared_store2, &iter2, 0, str_data, -1);
+        }
         valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(cell->shared_store), &iter);
         g_free(str_data);
     }
@@ -578,8 +580,10 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     match_str = gnc_quickfill_string (match);
     GtkListStore* the_store = cell->shared_store2;
 
-    gboolean new_search = 1;
-    g_print ("__________________________\nNormal match: %s\n", match_str);
+    gboolean new_search = (match==NULL || match_str == NULL) || 1;
+    g_print ("__________________________\new search %d val %s\n", new_search,newval);
+    // JEAN: For the two searches to work I have to re-fill box->item_list when I go back
+    // to old search. Not sure whether that's costly or not.
     
     int num_found=0;
     gchar *first_found = NULL;
@@ -597,7 +601,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
             gchar* low_str_data = g_ascii_strdown(str_data,-1);
             gchar * ret = g_strrstr(low_str_data, low_newval);
             if(ret!=NULL) {
-                g_print ("Found: %s to match %s\n", str_data,newval);
+                //g_print ("Found: %s to match %s\n", str_data,newval);
                 if(!num_found) first_found = g_strdup(str_data);
                 num_found ++;
                 gnc_item_list_append (box->item_list, str_data);
