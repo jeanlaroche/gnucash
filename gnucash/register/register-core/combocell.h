@@ -49,6 +49,8 @@ typedef struct
 {
     BasicCell cell;
     gpointer shared_store;
+    // JEAN ADD STORE2
+    gpointer shared_store2;
 } ComboCell;
 
 

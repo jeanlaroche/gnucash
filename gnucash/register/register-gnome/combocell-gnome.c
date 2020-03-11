@@ -53,7 +53,9 @@ typedef struct _PopBox
 {
     GnucashSheet *sheet;
     GncItemEdit  *item_edit;
+    // JEAN: WHERE POPBOX DEFINED
     GncItemList  *item_list;
+    GncItemList  *item_list2;
     GtkListStore *tmp_store;
 
     gboolean signals_connected; /* list signals connected? */
@@ -142,7 +144,9 @@ gnc_combo_cell_init (ComboCell *cell)
     box->sheet = NULL;
     box->item_edit = NULL;
     box->item_list = NULL;
+    box->item_list2 = NULL;
     box->tmp_store = gtk_list_store_new (1, G_TYPE_STRING);
+    cell->shared_store2 = NULL;
     box->signals_connected = FALSE;
     box->list_popped = FALSE;
     box->autosize = FALSE;
@@ -546,34 +550,50 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     // JEAN: WHERE THE MATCH OCCURS
     match = gnc_quickfill_get_string_match (box->qf, newval);
     match_str = gnc_quickfill_string (match);
-    
+    gboolean copy = 0;
+    GtkListStore* the_store = cell->shared_store2;
+    if(cell->shared_store2==NULL) {
+        cell->shared_store2 = gtk_list_store_new (1, G_TYPE_STRING);
+        the_store = cell->shared_store;
+        copy = 1;
+        g_print("COPY");
+    }
+
     gboolean new_search = 1;
     g_print ("__________________________\nNormal match: %s\n", match_str);
     
     int num_found=0;
     gchar *first_found = NULL;
     if (new_search) {
-        cell->shared_store;
         GtkTreeIter iter;
-        gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(cell->shared_store), &iter);
+        gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(the_store), &iter);
         gchar *str_data;
         gchar* low_newval = g_ascii_strdown(newval,-1);
-//        gnc_item_list_clear(box->item_list);
+        if(!copy)
+            gnc_item_list_clear(box->item_list);
+
         while (valid)
         {
             /* Walk through the list, reading each row */
-            gtk_tree_model_get (GTK_TREE_MODEL(cell->shared_store), &iter,0, &str_data,-1);
+            gtk_tree_model_get (GTK_TREE_MODEL(the_store), &iter,0, &str_data,-1);
+            if (copy) {
+                GtkTreeIter iter;
+                gtk_list_store_append(cell->shared_store2, &iter);
+                gtk_list_store_set(cell->shared_store2, &iter, 0, str_data, -1);
+            }
+
             gchar* low_str_data = g_ascii_strdown(str_data,-1);
             gchar * ret = g_strrstr(low_str_data, low_newval);
             if(ret!=NULL) {
                 g_print ("Found: %s to match %s\n", str_data,newval);
                 if(!num_found) first_found = g_strdup(str_data);
                 num_found ++;
-                gnc_item_list_append (box->item_list, str_data);
+                if(!copy)
+                    gnc_item_list_append (box->item_list, str_data);
 //                break;
             }
             g_free(str_data);
-            valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(cell->shared_store), &iter);
+            valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(the_store), &iter);
         }
         if(!num_found)
         {
@@ -583,6 +603,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         else
         {
             match_str = first_found;
+            // This isn't needed, just to ensure non-null below. silly
             match = gnc_quickfill_get_string_match (box->qf, first_found);
         }
     }
@@ -805,6 +826,7 @@ gnc_combo_cell_gui_realize (BasicCell *bcell, gpointer data)
     /* initialize gui-specific, private data */
     box->sheet = sheet;
     box->item_edit = item_edit;
+    // WHERE THE POPBOX GUI IS CREATED?
     if (cell->shared_store)
         box->item_list = GNC_ITEM_LIST (gnc_item_list_new (cell->shared_store));
     else

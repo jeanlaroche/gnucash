@@ -823,11 +823,13 @@ gnc_split_register_load_xfer_cells (SplitRegister *reg, Account *base_account)
     // JEAN: LIST STORE ASSIGNED TO CELL.
     store = gnc_get_shared_account_name_list_store (root, QKEY, skip_cb, NULL);
 
+    // JEAN: The account cell
     cell = (ComboCell *)
            gnc_table_layout_get_cell (reg->table->layout, XFRM_CELL);
     gnc_combo_cell_use_quickfill_cache (cell, qf);
     gnc_combo_cell_use_list_store_cache (cell, store);
 
+    // JEAN: The transfer cell
     cell = (ComboCell *)
            gnc_table_layout_get_cell (reg->table->layout, MXFRM_CELL);
     gnc_combo_cell_use_quickfill_cache (cell, qf);
