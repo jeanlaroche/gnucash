@@ -318,6 +318,7 @@ gnc_item_list_key_event (GtkWidget *widget, GdkEventKey *event, gpointer data)
                        gnc_item_list_signals[ACTIVATE_ITEM],
                        0,
                        string);
+        g_signal_emit (G_OBJECT (item_list), gnc_item_list_signals[CHANGE_ITEM], 0, string);
         g_free(string);
         return TRUE;
 

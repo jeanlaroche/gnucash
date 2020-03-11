@@ -53,7 +53,6 @@ typedef struct _PopBox
 {
     GnucashSheet *sheet;
     GncItemEdit  *item_edit;
-    // JEAN: WHERE POPBOX DEFINED
     GncItemList  *item_list;
     GncItemList  *item_list2;
     GtkListStore *tmp_store;
@@ -146,11 +145,11 @@ gnc_combo_cell_init (ComboCell *cell)
     box->item_list = NULL;
     box->item_list2 = NULL;
     box->tmp_store = gtk_list_store_new (1, G_TYPE_STRING);
-    cell->shared_store2 = NULL;
     box->signals_connected = FALSE;
     box->list_popped = FALSE;
     box->autosize = FALSE;
 
+    cell->shared_store_full = NULL;
     cell->cell.gui_private = box;
 
     box->qf = gnc_quickfill_new ();
@@ -407,16 +406,17 @@ gnc_combo_cell_use_quickfill_cache (ComboCell * cell, QuickFill *shared_qf)
     box->qf = shared_qf;
 }
 
+// JEAN COPY: For type-ahead, we need two versions of the account list: one with all accounts
+// which can be searched for a match, and the other with the matched account.
 void gnc_combo_cell_backup_store(ComboCell * cell)
 {
-    // JEAN: WHERE TO COPY THE INITIAL LIST?
-    if(cell->shared_store2 == NULL)
-        cell->shared_store2 = gtk_list_store_new (1, G_TYPE_STRING);
-    else {
-        // JEAN: EMPTY THE STORE.
-    }
+    if(cell->shared_store_full == NULL)
+        cell->shared_store_full = gtk_list_store_new (1, G_TYPE_STRING);
+    else
+        gtk_list_store_clear(cell->shared_store_full);
+    
         
-    g_print("COPY!!!!!!!!!");
+    g_debug("Create shared_store_full\n");
     GtkTreeIter iter;
     gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(cell->shared_store), &iter);
     gchar *str_data = NULL;
@@ -425,8 +425,8 @@ void gnc_combo_cell_backup_store(ComboCell * cell)
         gtk_tree_model_get (GTK_TREE_MODEL(cell->shared_store), &iter,0, &str_data,-1);
         GtkTreeIter iter2;
         for(int i=0;i<20;i++) {
-        gtk_list_store_append(cell->shared_store2, &iter2);
-        gtk_list_store_set(cell->shared_store2, &iter2, 0, str_data, -1);
+        gtk_list_store_append(cell->shared_store_full, &iter2);
+        gtk_list_store_set(cell->shared_store_full, &iter2, 0, str_data, -1);
         }
         valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(cell->shared_store), &iter);
         g_free(str_data);
@@ -578,7 +578,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     // JEAN: WHERE THE MATCH OCCURS
     match = gnc_quickfill_get_string_match (box->qf, newval);
     match_str = gnc_quickfill_string (match);
-    GtkListStore* the_store = cell->shared_store2;
+    GtkListStore* the_store = cell->shared_store_full;
 
     gboolean new_search = (match==NULL || match_str == NULL) || 1;
     g_print ("__________________________\new search %d val %s\n", new_search,newval);
@@ -604,7 +604,9 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
                 //g_print ("Found: %s to match %s\n", str_data,newval);
                 if(!num_found) first_found = g_strdup(str_data);
                 num_found ++;
-                gnc_item_list_append (box->item_list, str_data);
+                // The pop box can be very slow to display if it has too many items.
+                if(num_found < 30)
+                    gnc_item_list_append (box->item_list, str_data);
 //                break;
             }
             g_free(str_data);

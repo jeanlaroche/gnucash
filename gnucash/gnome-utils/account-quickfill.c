@@ -49,7 +49,6 @@ static void listen_for_account_events (QofInstance *entity, QofEventId event_typ
  * accounts).
  */
 
-// JEAN: The QFB Structure
 typedef struct
 {
     QuickFill *qf;
@@ -130,15 +129,14 @@ load_shared_qf_cb (Account *account, gpointer data)
     }
 
     name = gnc_get_account_name_for_register (account);
-    // TODO: JEAN THIS IS WHERE THE ACCOUNT NAMES ARE COLLECTED.
-    printf("Account name %s\n",name);    
+    // TODO: JEAN THIS IS WHERE THE ACCOUNT NAMES ARE COLLECTED IN STORE
+//    printf("Account name %s\n",name);    
     if (NULL == name)
         return;
     gnc_quickfill_insert (qfb->qf, name, QUICKFILL_LIFO);
     if (qfb->load_list_store)
     {
         gtk_list_store_append (qfb->list_store, &iter);
-        // JEAN: WHERE ACCOUNTS ARE ADDED TO LIST_STORE
         gtk_list_store_set (qfb->list_store, &iter,
                             ACCOUNT_NAME, name,
                             ACCOUNT_POINTER, account,
@@ -192,7 +190,7 @@ build_shared_quickfill (QofBook *book, Account *root, const char * key,
                            shared_quickfill_pref_changed,
                            qfb);
 
-    // JEAN: Where the descendants of an account are traversed for quickfill
+    // JEAN: ACCOUNT TRAVERSING
     gnc_account_foreach_descendant (root, load_shared_qf_cb, qfb);
     qfb->load_list_store = FALSE;
 
