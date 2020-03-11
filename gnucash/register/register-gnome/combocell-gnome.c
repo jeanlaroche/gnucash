@@ -413,6 +413,21 @@ gnc_combo_cell_use_list_store_cache (ComboCell * cell, gpointer data)
     if (cell == NULL) return;
 
     cell->shared_store = data;
+    // JEAN: WHERE TO COPY THE INITIAL CACHE?
+    cell->shared_store2 = gtk_list_store_new (1, G_TYPE_STRING);
+    g_print("COPY!!!!!!!!!");
+    GtkTreeIter iter;
+    gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(cell->shared_store), &iter);
+    gchar *str_data;
+    while (valid)
+    {
+        gtk_tree_model_get (GTK_TREE_MODEL(cell->shared_store), &iter,0, &str_data,-1);
+        GtkTreeIter iter2;
+        gtk_list_store_append(cell->shared_store2, &iter2);
+        gtk_list_store_set(cell->shared_store2, &iter2, 0, str_data, -1);
+        g_free(str_data);
+        valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(cell->shared_store), &iter);
+    }
 }
 
 void
@@ -550,14 +565,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     // JEAN: WHERE THE MATCH OCCURS
     match = gnc_quickfill_get_string_match (box->qf, newval);
     match_str = gnc_quickfill_string (match);
-    gboolean copy = 0;
     GtkListStore* the_store = cell->shared_store2;
-    if(cell->shared_store2==NULL) {
-        cell->shared_store2 = gtk_list_store_new (1, G_TYPE_STRING);
-        the_store = cell->shared_store;
-        copy = 1;
-        g_print("COPY");
-    }
 
     gboolean new_search = 1;
     g_print ("__________________________\nNormal match: %s\n", match_str);
@@ -569,27 +577,19 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(the_store), &iter);
         gchar *str_data;
         gchar* low_newval = g_ascii_strdown(newval,-1);
-        if(!copy)
-            gnc_item_list_clear(box->item_list);
+        gnc_item_list_clear(box->item_list);
 
         while (valid)
         {
             /* Walk through the list, reading each row */
             gtk_tree_model_get (GTK_TREE_MODEL(the_store), &iter,0, &str_data,-1);
-            if (copy) {
-                GtkTreeIter iter;
-                gtk_list_store_append(cell->shared_store2, &iter);
-                gtk_list_store_set(cell->shared_store2, &iter, 0, str_data, -1);
-            }
-
             gchar* low_str_data = g_ascii_strdown(str_data,-1);
             gchar * ret = g_strrstr(low_str_data, low_newval);
             if(ret!=NULL) {
                 g_print ("Found: %s to match %s\n", str_data,newval);
                 if(!num_found) first_found = g_strdup(str_data);
                 num_found ++;
-                if(!copy)
-                    gnc_item_list_append (box->item_list, str_data);
+                gnc_item_list_append (box->item_list, str_data);
 //                break;
             }
             g_free(str_data);
