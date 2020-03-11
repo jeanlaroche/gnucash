@@ -569,7 +569,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
                 g_print ("Found: %s to match %s\n", str_data,newval);
                 if(!num_found) first_found = g_strdup(str_data);
                 num_found ++;
-//                gnc_item_list_append (box->item_list, str_data);
+                gnc_item_list_append (box->item_list, str_data);
 //                break;
             }
             g_free(str_data);

@@ -89,7 +89,7 @@ gnc_item_list_append (GncItemList *item_list, const char *string)
     g_return_if_fail(IS_GNC_ITEM_LIST(item_list));
     g_return_if_fail(item_list->list_store != NULL);
     g_return_if_fail(string != NULL);
-
+    // JEAN: WHERE LIST APPENDS IS
     gtk_list_store_append (item_list->list_store, &iter);
     gtk_list_store_set (item_list->list_store, &iter, 0, string, -1);
 }
