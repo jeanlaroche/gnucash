@@ -420,17 +420,24 @@ void gnc_combo_cell_backup_store(ComboCell * cell)
     GtkTreeIter iter;
     gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(cell->shared_store), &iter);
     gchar *str_data = NULL;
+    gint num_accounts = 0;
     while (valid)
     {
         gtk_tree_model_get (GTK_TREE_MODEL(cell->shared_store), &iter,0, &str_data,-1);
         GtkTreeIter iter2;
-        for(int i=0;i<20;i++) {
+        // JEAN: To test large numbers of accounts.
+//        for(int i=0;i<100;i++) {
+//            gtk_list_store_append(cell->shared_store_full, &iter2);
+//            gtk_list_store_set(cell->shared_store_full, &iter2, 0, str_data, -1);
+//            num_accounts ++;
+//        }
         gtk_list_store_append(cell->shared_store_full, &iter2);
         gtk_list_store_set(cell->shared_store_full, &iter2, 0, str_data, -1);
-        }
         valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(cell->shared_store), &iter);
         g_free(str_data);
+        num_accounts ++;
     }
+    g_print("%d accounts\n",num_accounts);
 }
 
 void
@@ -582,6 +589,8 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
 
     gboolean type_ahead_search = gnc_prefs_get_bool(GNC_PREFS_GROUP_GENERAL_REGISTER,
                                     GNC_PREF_TYPE_AHEAD_SEARCH);
+    // At this point, I can't seem to get the preferences to work for this.
+    type_ahead_search = TRUE;
 
 //    gboolean type_ahead_search = (match==NULL || match_str == NULL) && 0;
     g_print ("__________________________\new search %d val %s\n", type_ahead_search,newval);
