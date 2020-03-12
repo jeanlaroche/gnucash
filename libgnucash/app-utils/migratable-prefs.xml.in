@@ -467,6 +467,11 @@
       <gconfkey>enter_moves_to_end</gconfkey>
     </pref>
     <pref>
+      <gschemaname>type-ahead-search</gschemaname>
+      <gschematype>b</gschematype>
+      <gconfkey>type_ahead_search</gconfkey>
+    </pref>
+    <pref>
       <gschemaname>auto-raise-lists</gschemaname>
       <gschematype>b</gschematype>
       <gconfkey>auto_raise_lists</gconfkey>
