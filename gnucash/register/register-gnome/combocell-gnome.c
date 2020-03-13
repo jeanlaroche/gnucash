@@ -589,10 +589,8 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
 
     gboolean type_ahead_search = gnc_prefs_get_bool(GNC_PREFS_GROUP_GENERAL_REGISTER,
                                     GNC_PREF_TYPE_AHEAD_SEARCH);
-    // At this point, I can't seem to get the preferences to work for this.
-    type_ahead_search = TRUE;
 
-//    gboolean type_ahead_search = (match==NULL || match_str == NULL) && 0;
+    //    gboolean type_ahead_search = (match==NULL || match_str == NULL) && 0;
     g_print ("__________________________\new search %d val %s\n", type_ahead_search,newval);
     // JEAN: For the two searches to work I have to re-fill box->item_list when I go back
     // to old search. Not sure whether that's costly or not.
