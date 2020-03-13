@@ -88,8 +88,10 @@ static void gnc_combo_cell_destroy (BasicCell *bcell);
 
 static GOnce auto_pop_init_once = G_ONCE_INIT;
 static gboolean auto_pop_combos = FALSE;
+static gboolean type_ahead_search = FALSE;
 
 
+// Two Callbacks called when the user changes preferences
 static void
 gnc_combo_cell_set_autopop (gpointer prefs, gchar *pref, gpointer user_data)
 {
@@ -97,15 +99,30 @@ gnc_combo_cell_set_autopop (gpointer prefs, gchar *pref, gpointer user_data)
                                           GNC_PREF_AUTO_RAISE_LISTS);
 }
 
+static void
+gnc_combo_cell_set_type_ahead_search (gpointer prefs, gchar *pref, gpointer user_data)
+{
+    type_ahead_search = gnc_prefs_get_bool (GNC_PREFS_GROUP_GENERAL_REGISTER,
+                                          GNC_PREF_TYPE_AHEAD_SEARCH);
+}
+
 static gpointer
 gnc_combo_cell_autopop_init (gpointer unused)
 {
     auto_pop_combos = gnc_prefs_get_bool (GNC_PREFS_GROUP_GENERAL_REGISTER,
                                           GNC_PREF_AUTO_RAISE_LISTS);
+    
+    type_ahead_search = gnc_prefs_get_bool (GNC_PREFS_GROUP_GENERAL_REGISTER,
+                                          GNC_PREF_TYPE_AHEAD_SEARCH);
 
+    // Register callbacks for when the user changes preferences.
     gnc_prefs_register_cb (GNC_PREFS_GROUP_GENERAL_REGISTER,
                            GNC_PREF_AUTO_RAISE_LISTS,
                            gnc_combo_cell_set_autopop,
+                           NULL);
+    gnc_prefs_register_cb (GNC_PREFS_GROUP_GENERAL_REGISTER,
+                           GNC_PREF_TYPE_AHEAD_SEARCH,
+                           gnc_combo_cell_set_type_ahead_search,
                            NULL);
     return NULL;
 }
@@ -587,14 +604,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
     match_str = gnc_quickfill_string (match);
     GtkListStore* the_store = cell->shared_store_full;
 
-    gboolean type_ahead_search = gnc_prefs_get_bool(GNC_PREFS_GROUP_GENERAL_REGISTER,
-                                    GNC_PREF_TYPE_AHEAD_SEARCH);
-
-    //    gboolean type_ahead_search = (match==NULL || match_str == NULL) && 0;
     g_print ("__________________________\new search %d val %s\n", type_ahead_search,newval);
-    // JEAN: For the two searches to work I have to re-fill box->item_list when I go back
-    // to old search. Not sure whether that's costly or not.
-    
     int num_found=0;
     gchar *first_found = NULL;
     if (type_ahead_search) {
