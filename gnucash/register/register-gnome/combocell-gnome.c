@@ -423,48 +423,13 @@ gnc_combo_cell_use_quickfill_cache (ComboCell * cell, QuickFill *shared_qf)
     box->qf = shared_qf;
 }
 
-// JEAN COPY: For type-ahead, we need two versions of the account list: one with all accounts
-// which can be searched for a match, and the other with the matched account.
-void gnc_combo_cell_backup_store(ComboCell * cell)
-{
-    if(cell->shared_store_full == NULL)
-        cell->shared_store_full = gtk_list_store_new (1, G_TYPE_STRING);
-    else
-        gtk_list_store_clear(cell->shared_store_full);
-    
-        
-    g_debug("Create shared_store_full\n");
-    GtkTreeIter iter;
-    gboolean valid = gtk_tree_model_get_iter_first (GTK_TREE_MODEL(cell->shared_store), &iter);
-    gchar *str_data = NULL;
-    gint num_accounts = 0;
-    while (valid)
-    {
-        gtk_tree_model_get (GTK_TREE_MODEL(cell->shared_store), &iter,0, &str_data,-1);
-        GtkTreeIter iter2;
-        // JEAN: To test large numbers of accounts.
-//        for(int i=0;i<100;i++) {
-//            gtk_list_store_append(cell->shared_store_full, &iter2);
-//            gtk_list_store_set(cell->shared_store_full, &iter2, 0, str_data, -1);
-//            num_accounts ++;
-//        }
-        gtk_list_store_append(cell->shared_store_full, &iter2);
-        gtk_list_store_set(cell->shared_store_full, &iter2, 0, str_data, -1);
-        valid = gtk_tree_model_iter_next (GTK_TREE_MODEL(cell->shared_store), &iter);
-        g_free(str_data);
-        num_accounts ++;
-    }
-    g_print("%d accounts\n",num_accounts);
-}
-
 void
-gnc_combo_cell_use_list_store_cache (ComboCell * cell, gpointer data)
+gnc_combo_cell_use_list_store_cache (ComboCell * cell, gpointer data, gpointer data_full)
 {
     if (cell == NULL) return;
 
     cell->shared_store = data;
-    // Make a copy of our list, we'll need it for the autocompletion.
-    gnc_combo_cell_backup_store(cell);
+    cell->shared_store_full = data_full;
 }
 
 void
@@ -642,6 +607,7 @@ gnc_combo_cell_modify_verify (BasicCell *_cell,
         else
         {
             // This is probably wasteful.
+            g_print("first found %s\n",first_found);
             match = gnc_quickfill_get_string_match (box->qf, first_found);
             match_str = first_found;
         }
