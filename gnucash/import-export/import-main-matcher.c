@@ -524,6 +524,7 @@ gnc_gen_trans_assign_transfer_account_to_selection_cb (
     Account *assigned_account;
     GList *selected_rows, *l;
     gboolean first, is_selection;
+    GList *refs = NULL;
 
     ENTER("assign_transfer_account_to_selection_cb");
     treeview = GTK_TREE_VIEW(info->view);
@@ -533,6 +534,7 @@ gnc_gen_trans_assign_transfer_account_to_selection_cb (
     assigned_account = NULL;
     first = TRUE;
     is_selection = TRUE;
+
     DEBUG("Rows in selection = %i",
           gtk_tree_selection_count_selected_rows (selection));
     DEBUG("Entering loop over selection");
@@ -542,11 +544,13 @@ gnc_gen_trans_assign_transfer_account_to_selection_cb (
         for (l = selected_rows; l != NULL; l = l->next)
         {
             gchar *path_str = gtk_tree_path_to_string (l->data);
+            GtkTreeRowReference *ref = gtk_tree_row_reference_new (model, l->data);
             DEBUG("passing first = %s", first ? "true" : "false");
             DEBUG("passing is_selection = %s",
                         is_selection ? "true" : "false");
             DEBUG("passing path = %s", path_str);
             g_free (path_str);
+            refs = g_list_prepend (refs, ref);
             DEBUG("passing account value = %s",
                         gnc_account_get_full_name (assigned_account));
             gnc_gen_trans_assign_transfer_account (treeview,
@@ -557,10 +561,23 @@ gnc_gen_trans_assign_transfer_account_to_selection_cb (
             DEBUG("returned value of first = %s", first ? "true" : "false");
             if (assigned_account == NULL)
                 break;
-            gtk_tree_selection_unselect_path (selection, l->data);
+
         }
     }
     g_list_free_full (selected_rows, (GDestroyNotify) gtk_tree_path_free);
+
+    // now reselect the transaction rows.
+    for (l = refs; l != NULL; l = l->next)
+    {
+        GtkTreePath *path = gtk_tree_row_reference_get_path (l->data);
+
+        gtk_tree_selection_select_path (selection, path);
+
+        gtk_tree_path_free (path);
+        gtk_tree_row_reference_free (l->data);
+    }
+    g_list_free (refs);
+
     LEAVE("");
 }
 
@@ -580,6 +597,9 @@ gnc_gen_trans_row_activated_cb (GtkTreeView *treeview,
     gnc_gen_trans_assign_transfer_account (treeview,
                             &first, is_selection, path,
                             &assigned_account, info);
+
+    gtk_tree_selection_select_path (gtk_tree_view_get_selection (treeview), path);
+
     DEBUG("account returned = %s", gnc_account_get_full_name (assigned_account));
     LEAVE("");
 }
