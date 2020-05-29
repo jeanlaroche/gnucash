@@ -880,6 +880,25 @@ void gnc_import_find_split_matches(GNCImportTransInfo *trans_info,
     qof_query_destroy (query);
 }
 
+static void
+update_str(Transaction* orig, GNCImportTransInfo* imported, const char* get_fun(const Transaction*), void set_fun(Transaction*, const char*))
+{
+    // Concatenate the info or the notes from impoted with that of orig. JEAN
+    const char* orig_str = get_fun (orig);
+    if (orig_str && strlen (orig_str))
+    {
+        char* new_str = g_strconcat (orig_str, " - ",
+                                     get_fun (gnc_import_TransInfo_get_trans (imported)),
+                                     NULL);
+        set_fun (orig, new_str);
+        g_free (new_str);
+    }
+    else
+    {
+        set_fun (orig, get_fun (gnc_import_TransInfo_get_trans (imported)));
+    }
+}
+
 
 /***********************************************************************
  */
@@ -998,13 +1017,8 @@ gnc_import_process_trans_item (GncImportMatchMap *matchmap,
                    to balance the transaction */
             }
 
-            xaccTransSetDescription(selected_match->trans,
-                                    xaccTransGetDescription(
-                                        gnc_import_TransInfo_get_trans(trans_info)));
-
-            xaccTransSetNotes(selected_match->trans,
-                                    xaccTransGetNotes(
-                                        gnc_import_TransInfo_get_trans(trans_info)));
+            update_str (selected_match->trans, trans_info, xaccTransGetDescription, xaccTransSetDescription);
+            update_str (selected_match->trans, trans_info, xaccTransGetNotes, xaccTransSetNotes);
 
             if (xaccSplitGetReconcile(selected_match->split) == NREC)
             {
