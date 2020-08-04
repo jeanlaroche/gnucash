@@ -1068,7 +1068,7 @@ gnc_plugin_page_account_tree_selection_changed_cb (GtkTreeSelection *selection,
 
     g_return_if_fail(GNC_IS_PLUGIN_PAGE_ACCOUNT_TREE(page));
 
-    if (!selection)
+    if (!selection) // JEAN: where the edit/delete buttons are disabled.
     {
         sensitive = FALSE;
         subaccounts = FALSE;

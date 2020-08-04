@@ -748,6 +748,10 @@ gnc_tree_view_account_new_with_root (Account *root, gboolean show_root)
     view = g_object_new (GNC_TYPE_TREE_VIEW_ACCOUNT,
                          "name", "gnc-id-account-tree", NULL);
 
+    GtkTreeSelection *selection = gtk_tree_view_get_selection (GTK_TREE_VIEW(view));
+    gtk_tree_selection_set_mode(selection,GTK_SELECTION_MULTIPLE);
+
+
     priv = GNC_TREE_VIEW_ACCOUNT_GET_PRIVATE(GNC_TREE_VIEW_ACCOUNT (view));
 
     /* Get the show_account_color value from gsettings */
@@ -1395,8 +1399,9 @@ gnc_tree_view_account_get_selected_account (GncTreeViewAccount *view)
     mode = gtk_tree_selection_get_mode(selection);
     if ((mode != GTK_SELECTION_SINGLE) && (mode != GTK_SELECTION_BROWSE))
     {
-        return NULL;
+        //return NULL;
     }
+    // JEAN: THis does not work when GTK_SELECTION_MULTIPLE IS USED
     if (!gtk_tree_selection_get_selected (selection, &s_model, &s_iter))
     {
         LEAVE("no account, get_selected failed");
