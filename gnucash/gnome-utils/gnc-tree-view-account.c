@@ -1399,9 +1399,12 @@ gnc_tree_view_account_get_selected_account (GncTreeViewAccount *view)
     mode = gtk_tree_selection_get_mode(selection);
     if ((mode != GTK_SELECTION_SINGLE) && (mode != GTK_SELECTION_BROWSE))
     {
-        //return NULL;
+        // JEAN
+        GList* acct_list = gnc_tree_view_account_get_selected_accounts(view);
+        if (acct_list == NULL)
+            return NULL;
+        return acct_list->data;
     }
-    // JEAN: THis does not work when GTK_SELECTION_MULTIPLE IS USED
     if (!gtk_tree_selection_get_selected (selection, &s_model, &s_iter))
     {
         LEAVE("no account, get_selected failed");

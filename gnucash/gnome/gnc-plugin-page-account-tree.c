@@ -590,8 +590,15 @@ gnc_plugin_page_account_tree_get_current_account (GncPluginPageAccountTree *page
     account = gnc_tree_view_account_get_selected_account (GNC_TREE_VIEW_ACCOUNT(priv->tree_view));
     if (account == NULL)
     {
-        LEAVE("no account");
-        return NULL;
+        GList* acct_list = gnc_tree_view_account_get_selected_accounts (GNC_TREE_VIEW_ACCOUNT(priv->tree_view));
+        if (acct_list) account = acct_list->data;
+        if (account == NULL)
+        {
+            LEAVE("no account");
+            return NULL;
+        }
+        // JEAN FREE acct_list
+        g_list_free(acct_list);
     }
 
     LEAVE("account %p", account);
@@ -1077,8 +1084,13 @@ gnc_plugin_page_account_tree_selection_changed_cb (GtkTreeSelection *selection,
     {
         g_return_if_fail(GTK_IS_TREE_SELECTION(selection));
         view = gtk_tree_selection_get_tree_view (selection);
-        account = gnc_tree_view_account_get_selected_account (GNC_TREE_VIEW_ACCOUNT(view));
+//        account = gnc_tree_view_account_get_selected_account (GNC_TREE_VIEW_ACCOUNT(view));
+        GList* acct_list = gnc_tree_view_account_get_selected_accounts (GNC_TREE_VIEW_ACCOUNT(view));
+        if (acct_list) account = acct_list->data;
         sensitive = (account != NULL);
+        // JEAN Free acct_list
+        g_list_free(acct_list);
+
 
         subaccounts = account && (gnc_account_n_children(account) != 0);
         /* Check here for placeholder accounts, etc. */
@@ -1433,6 +1445,7 @@ typedef struct
     Adopter subacct;
     Adopter subtrans;
     delete_helper_t delete_res;
+    gboolean do_not_ask;
 } Adopters;
 
 static Account*
@@ -1563,22 +1576,19 @@ account_delete_dialog (Account *account, GtkWindow *parent, Adopters* adopt)
     return dialog;
 }
 
+Adopters adopt;
+
 static void
-gnc_plugin_page_account_tree_cmd_delete_account (GtkAction *action, GncPluginPageAccountTree *page)
+gnc_plugin_page_account_tree_cmd_delete_one_account (GtkAction *action, GncPluginPageAccountTree *page, Account* account)
 {
-    Account *account = gnc_plugin_page_account_tree_get_current_account (page);
+//    Account *account = gnc_plugin_page_account_tree_get_current_account (page);
     gchar *acct_name;
     GtkWidget *window;
-    Adopters adopt;
     GList* list;
     gint response;
     GList *filter = NULL;
     GtkWidget *dialog = NULL;
 
-    if (account == NULL)
-        return;
-
-    memset (&adopt, 0, sizeof (adopt));
     /* If the account has objects referring to it, show the list - the account can't be deleted until these
        references are dealt with. */
     list = qof_instance_get_referring_object_list(QOF_INSTANCE(account));
@@ -1612,9 +1622,10 @@ gnc_plugin_page_account_tree_cmd_delete_account (GtkAction *action, GncPluginPag
         return;
     }
 
-    dialog = account_delete_dialog (account, GTK_WINDOW (window), &adopt);
+    if (adopt.do_not_ask == FALSE)
+        dialog = account_delete_dialog (account, GTK_WINDOW (window), &adopt);
 
-    while (TRUE)
+    while (TRUE && adopt.do_not_ask == FALSE)
     {
         response = gtk_dialog_run(GTK_DIALOG(dialog));
 
@@ -1636,15 +1647,29 @@ gnc_plugin_page_account_tree_cmd_delete_account (GtkAction *action, GncPluginPag
             adopter_match (&adopt.subtrans, GTK_WINDOW (window)))
             break;
     }
-        filter = g_object_get_data (G_OBJECT (dialog), DELETE_DIALOG_FILTER);
+    filter = g_object_get_data (G_OBJECT (dialog), DELETE_DIALOG_FILTER);
     gtk_widget_destroy(dialog);
     g_list_free(filter);
-    if (confirm_delete_account (action, page, adopt.trans.new_account,
+    if (adopt.do_not_ask || confirm_delete_account (action, page, adopt.trans.new_account,
                                 adopt.subtrans.new_account,
                                 adopt.subacct.new_account,
                                 adopt.delete_res) == GTK_RESPONSE_ACCEPT)
         do_delete_account (account, adopt.subacct.new_account,
                            adopt.subtrans.new_account, adopt.trans.new_account);
+}
+
+static void
+gnc_plugin_page_account_tree_cmd_delete_account (GtkAction *action, GncPluginPageAccountTree *page)
+{
+    GncPluginPageAccountTreePrivate *priv = GNC_PLUGIN_PAGE_ACCOUNT_TREE_GET_PRIVATE(page);
+    GList* acct_list = gnc_tree_view_account_get_selected_accounts (GNC_TREE_VIEW_ACCOUNT(priv->tree_view));
+    memset (&adopt, 0, sizeof (adopt));
+    for (GList* iter = acct_list; iter ; iter=iter->next)
+    {
+        gnc_plugin_page_account_tree_cmd_delete_one_account(action,page,iter->data);
+        adopt.do_not_ask = TRUE;
+    }
+    g_list_free(acct_list);
 }
 
 static int
