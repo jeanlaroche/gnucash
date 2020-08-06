@@ -351,7 +351,7 @@ static const gchar *actions_not_supporting_multi_select[] =
     "FileNewAccountAction",
     "FileAddAccountHierarchyAssistantAction",
     "FileOpenAccountAction",
-    "EditEditAccountAction",
+//    "EditEditAccountAction",
     "EditRenumberSubaccountsAction",
     "ActionsTransferAction",
     "ActionsReconcileAction",
@@ -1212,12 +1212,17 @@ gnc_plugin_page_account_tree_cmd_edit_account (GtkAction *action, GncPluginPageA
 {
     Account *account;
     GtkWindow *parent = GTK_WINDOW (gnc_plugin_page_get_window (GNC_PLUGIN_PAGE (page)));
+    GList* acct_list = NULL;
+    GncPluginPageAccountTreePrivate *priv;
     ENTER("action %p, page %p", action, page);
 
     account = gnc_plugin_page_account_tree_get_current_account (page);
-    g_return_if_fail (account != NULL);
+//    g_return_if_fail (account != NULL);
+    priv = GNC_PLUGIN_PAGE_ACCOUNT_TREE_GET_PRIVATE (page);
+    acct_list = gnc_tree_view_account_get_selected_accounts (GNC_TREE_VIEW_ACCOUNT (priv->tree_view));
+    g_return_if_fail (acct_list != NULL && acct_list->data != NULL);
 
-    gnc_ui_edit_account_window (parent, account);
+    gnc_ui_edit_account_list_window (parent, acct_list);
     LEAVE(" ");
 }
 

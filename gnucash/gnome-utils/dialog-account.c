@@ -118,6 +118,8 @@ typedef struct _AccountWindow
     GtkWidget * hidden_button;
     GtkWidget * auto_interest_button;
     GtkWidget * auto_interest_button_label;
+    gboolean    multi_account;
+    GList*      acct_list;
 
     gint component_id;
 } AccountWindow;
@@ -1860,14 +1862,8 @@ find_by_account (gpointer find_data, gpointer user_data)
     return guid_equal (&aw->account, xaccAccountGetGUID (account));
 }
 
-/*
- * opens up a window to edit an account
- *
- * Args:   account - the account to edit
- * Return: EditAccountWindow object
- */
-void
-gnc_ui_edit_account_window(GtkWindow *parent, Account *account)
+static void
+gnc_ui_edit_account_window_aux (GtkWindow *parent, Account *account, GList* acct_list) // JEAN EDIT ACCOUNT
 {
     AccountWindow * aw;
     Account *parent_acct;
@@ -1884,6 +1880,8 @@ gnc_ui_edit_account_window(GtkWindow *parent, Account *account)
     }
 
     aw = g_new0 (AccountWindow, 1);
+    aw->multi_account = acct_list != NULL && g_list_length(acct_list) > 1;
+    aw->acct_list = acct_list;
 
     aw->book = gnc_account_get_book(account);
     aw->modal = FALSE;
@@ -1926,6 +1924,24 @@ gnc_ui_edit_account_window(GtkWindow *parent, Account *account)
     gtk_window_present(GTK_WINDOW(aw->dialog));
 }
 
+/*
+ * opens up a window to edit an account
+ *
+ * Args:   account - the account to edit
+ * Return: EditAccountWindow object
+ */
+void
+gnc_ui_edit_account_window (GtkWindow *parent, Account *account) // JEAN EDIT ACCOUNT
+{
+    gnc_ui_edit_account_window_aux (parent, account, NULL);
+}
+
+void
+gnc_ui_edit_account_list_window (GtkWindow *parent, GList* acct_list) // JEAN EDIT ACCOUNT
+{
+    Account* account = acct_list->data;
+    gnc_ui_edit_account_window_aux (parent, account,acct_list);
+}
 
 /*
  * opens up a window to create a new account
