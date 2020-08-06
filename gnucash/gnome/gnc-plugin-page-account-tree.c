@@ -146,7 +146,7 @@ static void gnc_plugin_page_account_tree_double_click_cb (GtkTreeView        *tr
 
 static void gnc_plugin_page_account_tree_selection_changed_cb (GtkTreeSelection *selection,
         GncPluginPageAccountTree *page);
-void gppat_populate_trans_mas_list(GtkToggleButton *sa_mrb, GtkWidget *dialog);
+void gppat_populate_trans_mas_list(GtkToggleButton *sa_mrb, GtkWidget *dialog, GList* acct_list);
 void gppat_set_insensitive_iff_rb_active(GtkWidget *widget, GtkToggleButton *b);
 
 /* Command callbacks */
@@ -1297,22 +1297,22 @@ set_ok_sensitivity(GtkWidget *dialog)
 static void
 gppat_populate_gas_list(GtkWidget *dialog,
                         GNCAccountSel *gas,
-                        gboolean exclude_subaccounts)
+                        gboolean exclude_subaccounts,
+                        GList* acct_list)
 {
-    Account *account;
     GList *filter;
 
     g_return_if_fail(GTK_IS_DIALOG(dialog));
     if (gas == NULL)
         return;
-    account = g_object_get_data(G_OBJECT(dialog), DELETE_DIALOG_ACCOUNT);
     filter = g_object_get_data(G_OBJECT(dialog), DELETE_DIALOG_FILTER);
 
     /* Setting the account type filter triggers GNCAccountSel population. */
     gnc_account_sel_set_acct_filters (gas, filter, NULL);
 
-    /* Accounts to be deleted must be removed. */
-    gnc_account_sel_purge_account( gas, account, exclude_subaccounts);
+    /* Account(s) to be deleted must be removed. */
+    for (GList* acct = acct_list; acct; acct = acct->next)
+        gnc_account_sel_purge_account( gas, acct->data, exclude_subaccounts);
 
     /* The sensitivity of the OK button needs to be reevaluated. */
     set_ok_sensitivity(dialog);
@@ -1320,7 +1320,8 @@ gppat_populate_gas_list(GtkWidget *dialog,
 
 void
 gppat_populate_trans_mas_list(GtkToggleButton *sa_mrb,
-                              GtkWidget *dialog)
+                              GtkWidget *dialog,
+                              GList* acct_list)
 {
     GtkWidget *trans_mas;
 
@@ -1328,7 +1329,7 @@ gppat_populate_trans_mas_list(GtkToggleButton *sa_mrb,
 
     /* Cannot move transactions to subaccounts if they are to be deleted. */
     trans_mas = g_object_get_data(G_OBJECT(dialog), DELETE_DIALOG_TRANS_MAS);
-    gppat_populate_gas_list(dialog, GNC_ACCOUNT_SEL(trans_mas), !gtk_toggle_button_get_active(sa_mrb));
+    gppat_populate_gas_list(dialog, GNC_ACCOUNT_SEL(trans_mas), !gtk_toggle_button_get_active(sa_mrb), acct_list);
 }
 
 /* Note that the emitting object (the toggle button) and the signal data
@@ -1357,7 +1358,7 @@ gppat_set_insensitive_iff_rb_active(GtkWidget *widget, GtkToggleButton *b)
 
 static GtkWidget *
 gppat_setup_account_selector (GtkBuilder *builder, GtkWidget *dialog,
-                              const gchar *hbox, const gchar *sel_name)
+                              const gchar *hbox, const gchar *sel_name, GList* acct_list)
 {
     GtkWidget *selector = gnc_account_sel_new();
     GtkWidget *box = GTK_WIDGET(gtk_builder_get_object (builder, hbox));
@@ -1366,7 +1367,7 @@ gppat_setup_account_selector (GtkBuilder *builder, GtkWidget *dialog,
     gnc_account_sel_set_hexpand (GNC_ACCOUNT_SEL(selector), TRUE);
     g_object_set_data(G_OBJECT(dialog), sel_name, selector);
 
-    gppat_populate_gas_list(dialog, GNC_ACCOUNT_SEL(selector), TRUE);
+    gppat_populate_gas_list(dialog, GNC_ACCOUNT_SEL(selector), TRUE, acct_list);
     gtk_widget_show_all(box);
 
     return selector;
@@ -1460,8 +1461,9 @@ account_subaccount (Account* account)
 }
 
 static GtkWidget*
-account_delete_dialog (Account *account, GtkWindow *parent, Adopters* adopt)
+account_delete_dialog (GList* acct_list, GtkWindow *parent, Adopters* adopt)
 {
+    Account* account = acct_list->data;
     GtkWidget *dialog = NULL;
     GtkWidget *widget = NULL;
     gchar *title = NULL;
@@ -1495,7 +1497,7 @@ account_delete_dialog (Account *account, GtkWindow *parent, Adopters* adopt)
     adopter_init (&adopt->trans,
                   gppat_setup_account_selector (builder, dialog,
                                                 "trans_mas_hbox",
-                                                DELETE_DIALOG_TRANS_MAS),
+                                                DELETE_DIALOG_TRANS_MAS, acct_list),
                   account, FALSE);
 
     // Does the selected account have splits
@@ -1523,14 +1525,14 @@ account_delete_dialog (Account *account, GtkWindow *parent, Adopters* adopt)
     adopter_init (&adopt->subacct,
                   gppat_setup_account_selector (builder, dialog,
                                                 "sa_mas_hbox",
-                                                DELETE_DIALOG_SA_MAS),
+                                                DELETE_DIALOG_SA_MAS, acct_list),
                   account, TRUE);
 
     // setup subaccount transaction selector
     adopter_init (&adopt->subtrans,
                   gppat_setup_account_selector (builder, dialog,
                                                 "sa_trans_mas_hbox",
-                                                DELETE_DIALOG_SA_TRANS_MAS),
+                                                DELETE_DIALOG_SA_TRANS_MAS, acct_list),
                   account_subaccount (account), FALSE);
     g_object_set_data(G_OBJECT(dialog), DELETE_DIALOG_SA_TRANS,
                       GTK_WIDGET(gtk_builder_get_object (builder, "subaccount_trans")));
@@ -1682,7 +1684,7 @@ gnc_plugin_page_account_tree_cmd_delete_one_account (GtkAction *action, GncPlugi
         }
 
         if (dialog == NULL)
-            dialog = account_delete_dialog (account, GTK_WINDOW (window), &adopt);
+            dialog = account_delete_dialog (acct_list, GTK_WINDOW (window), &adopt);
 
         while (ask_user)
         {
