@@ -1578,84 +1578,158 @@ account_delete_dialog (Account *account, GtkWindow *parent, Adopters* adopt)
 
 Adopters adopt;
 
-static void
-gnc_plugin_page_account_tree_cmd_delete_one_account (GtkAction *action, GncPluginPageAccountTree *page, Account* account)
+static gboolean
+check_ref_subaccounts (Account* account, GtkWidget* window)
 {
-//    Account *account = gnc_plugin_page_account_tree_get_current_account (page);
-    gchar *acct_name;
-    GtkWidget *window;
-    GList* list;
-    gint response;
-    GList *filter = NULL;
-    GtkWidget *dialog = NULL;
-
+    gboolean ret = TRUE;
+    gchar *acct_name = NULL;
+    GList* list = qof_instance_get_referring_object_list (QOF_INSTANCE (account));
+    
     /* If the account has objects referring to it, show the list - the account can't be deleted until these
-       references are dealt with. */
-    list = qof_instance_get_referring_object_list(QOF_INSTANCE(account));
+     references are dealt with. */
     if (list != NULL)
     {
 #define EXPLANATION _("The list below shows objects which make use of the account which you want to delete.\nBefore you can delete it, you must either delete those objects or else modify them so they make use\nof another account")
-
         gnc_ui_object_references_show(EXPLANATION, list);
-        g_list_free(list);
-        return;
+        ret = FALSE;
     }
-
-    window = gnc_plugin_page_get_window(GNC_PLUGIN_PAGE(page));
-    acct_name = gnc_account_get_full_name(account);
-    if (!acct_name)
-        acct_name = g_strdup (_("(no name)"));
-
-    if (gnc_account_n_children(account) > 1) {
-        gchar* message = g_strdup_printf("Account '%s' has more than one subaccount, move subaccounts or delete them before attempting to delete this account.", acct_name);
-        gnc_error_dialog(GTK_WINDOW(window),"%s", message);
+    g_list_free(list);
+    
+    if (gnc_account_n_children (account) > 1) {
+        acct_name = gnc_account_get_full_name (account);
+        gchar* message;
+        if (!acct_name)
+            acct_name = g_strdup (_("(no name)"));
+        message = g_strdup_printf ("Account '%s' has more than one subaccount, move subaccounts or delete them before attempting to delete this account.", acct_name);
+        gnc_error_dialog (GTK_WINDOW(window),"%s", message);
         g_free (message);
-        g_free(acct_name);
-        return;
+        g_free (acct_name);
+        ret = FALSE;
     }
+    return ret;
+}
 
-    // If no transaction or children just delete it.
-    if (!(xaccAccountCountSplits (account, FALSE) ||
-          gnc_account_n_children (account)))
+static gboolean
+check_matches(GList* acct_list, Account* account, gboolean always_ask, GtkWidget *window)
+{
+    for (GList* acct2 = acct_list; acct2 ; acct2 = acct2->next)
     {
-        do_delete_account (account, NULL, NULL, NULL);
-        return;
-    }
-
-    if (adopt.do_not_ask == FALSE)
-        dialog = account_delete_dialog (account, GTK_WINDOW (window), &adopt);
-
-    while (TRUE && adopt.do_not_ask == FALSE)
-    {
-        response = gtk_dialog_run(GTK_DIALOG(dialog));
-
-        if (response != GTK_RESPONSE_ACCEPT)
-        {
-            /* Account deletion is cancelled, so clean up and return. */
-            filter = g_object_get_data (G_OBJECT (dialog),
-                                        DELETE_DIALOG_FILTER);
-            gtk_widget_destroy(dialog);
-            g_list_free(filter);
-            return;
-        }
+        // If we're not running all accounts only check the current one.
+        if (always_ask && acct2->data != account) continue;
+        if (acct2->data == NULL) continue;
+        adopt.trans.old_account = acct2->data;
+        adopt.subacct.old_account = acct2->data;
+        adopt.subtrans.old_account = acct2->data;
         adopter_set_account_and_match (&adopt.trans);
         adopter_set_account_and_match (&adopt.subacct);
         adopter_set_account_and_match (&adopt.subtrans);
+        
+        // JEAN: check that the move-to account isn't part of the ones we're deleting!
+        if (!adopter_match (&adopt.trans, GTK_WINDOW (window)) ||
+            !adopter_match (&adopt.subacct, GTK_WINDOW (window)) ||
+            !adopter_match (&adopt.subtrans, GTK_WINDOW (window)))
+            return FALSE;
+        if (adopt.trans.new_account == acct2->data ||
+            adopt.subacct.new_account == acct2->data ||
+            adopt.subtrans.new_account == acct2->data)
+        {
+            gchar* acct_name = gnc_account_get_full_name(acct2->data);
+            gnc_error_dialog (GTK_WINDOW (window), "Account %s is to be deleted!", acct_name);
+            g_free (acct_name);
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
 
-        if (adopter_match (&adopt.trans, GTK_WINDOW (window)) &&
-            adopter_match (&adopt.subacct, GTK_WINDOW (window)) &&
-            adopter_match (&adopt.subtrans, GTK_WINDOW (window)))
-            break;
+static void
+gnc_plugin_page_account_tree_cmd_delete_one_account (GtkAction *action, GncPluginPageAccountTree *page, GList* acct_list)
+{
+    gchar *acct_name;
+    GtkWidget *window;
+    GList* list;
+    GList* acct;
+    // JEAN INITIALIZE
+    gint response;
+    GList *filter = NULL;
+    GtkWidget *dialog = NULL;
+    gboolean always_ask = TRUE;
+    Account* account;
+
+    window = gnc_plugin_page_get_window(GNC_PLUGIN_PAGE(page));
+
+    for (acct = acct_list; acct ; acct = acct->next)
+    {
+        // Check that all accounts are OK to be removed.
+        if (!check_ref_subaccounts(acct->data, window))
+            return;
+    }
+    
+    for (acct = acct_list; acct ; acct = acct->next)
+    {
+        gboolean ask_user = always_ask;
+        account = acct->data;
+        acct_name = gnc_account_get_full_name(account);
+        if (!acct_name)
+            acct_name = g_strdup (_("(no name)"));
+
+        // If no transaction or children just delete it.
+        if (!(xaccAccountCountSplits (account, FALSE) ||
+              gnc_account_n_children (account)))
+        {
+            do_delete_account (account, NULL, NULL, NULL);
+            continue;
+        }
+
+        if (dialog == NULL)
+            dialog = account_delete_dialog (account, GTK_WINDOW (window), &adopt);
+
+        while (ask_user)
+        {
+            // JEAN Change the title of the dialog!
+            response = gtk_dialog_run(GTK_DIALOG(dialog));
+            
+            // JEAN cleanup this logic.
+            if (response == GTK_RESPONSE_CANCEL) // Skip this account.
+                break;
+
+            if (response == GTK_RESPONSE_NO) // Cancel all subsequent deletions.
+            {
+                /* All account deletion is cancelled, so clean up and return. */
+                filter = g_object_get_data (G_OBJECT (dialog),
+                                            DELETE_DIALOG_FILTER);
+                gtk_widget_destroy(dialog);
+                g_list_free(filter);
+                return;
+            }
+            if (response == GTK_RESPONSE_YES)
+                always_ask = FALSE;
+
+            if (check_matches (acct_list, account, always_ask, window))
+                break;
+        }
+        if (response == GTK_RESPONSE_CANCEL)
+            continue;
+        // JEAN: Let the user decide.
+        response = GTK_RESPONSE_ACCEPT;
+        if (ask_user)
+        {
+            // JEAN Add "all selected accounts" if more than one and run_all
+            response = confirm_delete_account (action, page, adopt.trans.new_account,
+                                               adopt.subtrans.new_account,
+                                               adopt.subacct.new_account,
+                                               adopt.delete_res);
+        }
+        if (!ask_user || response == GTK_RESPONSE_ACCEPT)
+        {
+            do_delete_account (account, adopt.subacct.new_account,
+                               adopt.subtrans.new_account, adopt.trans.new_account);
+            acct->data = NULL;
+        }
     }
     filter = g_object_get_data (G_OBJECT (dialog), DELETE_DIALOG_FILTER);
     gtk_widget_destroy(dialog);
     g_list_free(filter);
-    if (adopt.do_not_ask || confirm_delete_account (action, page, adopt.trans.new_account,
-                                adopt.subtrans.new_account,
-                                adopt.subacct.new_account,
-                                adopt.delete_res) == GTK_RESPONSE_ACCEPT)
-        do_delete_account (account, adopt.subacct.new_account,
-                           adopt.subtrans.new_account, adopt.trans.new_account);
 }
 
 static void
@@ -1664,11 +1738,14 @@ gnc_plugin_page_account_tree_cmd_delete_account (GtkAction *action, GncPluginPag
     GncPluginPageAccountTreePrivate *priv = GNC_PLUGIN_PAGE_ACCOUNT_TREE_GET_PRIVATE(page);
     GList* acct_list = gnc_tree_view_account_get_selected_accounts (GNC_TREE_VIEW_ACCOUNT(priv->tree_view));
     memset (&adopt, 0, sizeof (adopt));
-    for (GList* iter = acct_list; iter ; iter=iter->next)
-    {
-        gnc_plugin_page_account_tree_cmd_delete_one_account(action,page,iter->data);
-        adopt.do_not_ask = TRUE;
-    }
+    // JEAN CHANGE THIS FUNCTION NAME>
+    gnc_plugin_page_account_tree_cmd_delete_one_account(action,page,acct_list);
+
+//    for (GList* iter = acct_list; iter ; iter=iter->next)
+//    {
+//        gnc_plugin_page_account_tree_cmd_delete_one_account(action,page,iter->data);
+//        adopt.do_not_ask = TRUE;
+//    }
     g_list_free(acct_list);
 }
 
