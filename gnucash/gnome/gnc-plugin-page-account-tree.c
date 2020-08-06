@@ -347,8 +347,10 @@ static guint gnc_plugin_page_account_tree_n_actions = G_N_ELEMENTS (gnc_plugin_p
 /** Actions that do not support multi-selection of accounts. */
 static const gchar *actions_not_supporting_multi_select[] =
 {
-    "EditDeleteAccountAction",
+    //"EditDeleteAccountAction",
+    "FileNewAccountAction",
     "FileAddAccountHierarchyAssistantAction",
+    "FileOpenAccountAction",
     "EditEditAccountAction",
     "EditRenumberSubaccountsAction",
     "ActionsTransferAction",
@@ -1130,11 +1132,14 @@ gnc_plugin_page_account_tree_selection_changed_cb (GtkTreeSelection *selection,
 
     action = gtk_action_group_get_action (action_group, "EditCascadeAccountAction");
     g_object_set (G_OBJECT(action), "sensitive", subaccounts, NULL);
-
-    gnc_plugin_update_actions (action_group, actions_requiring_account_rw,
-                               "sensitive", is_readwrite && sensitive);
-    gnc_plugin_update_actions (action_group, actions_requiring_account_always,
-                               "sensitive", sensitive);
+    
+    // Don't re-enable these if they've been previously disabled.
+    if (!(is_readwrite && sensitive))
+        gnc_plugin_update_actions (action_group, actions_requiring_account_rw,
+                                   "sensitive", is_readwrite && sensitive);
+    if (!sensitive)
+        gnc_plugin_update_actions (action_group, actions_requiring_account_always,
+                                   "sensitive", sensitive);
 }
 
 
