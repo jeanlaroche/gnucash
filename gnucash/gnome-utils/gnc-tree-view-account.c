@@ -751,7 +751,6 @@ gnc_tree_view_account_new_with_root (Account *root, gboolean show_root)
     GtkTreeSelection *selection = gtk_tree_view_get_selection (GTK_TREE_VIEW(view));
     gtk_tree_selection_set_mode(selection,GTK_SELECTION_MULTIPLE);
 
-
     priv = GNC_TREE_VIEW_ACCOUNT_GET_PRIVATE(GNC_TREE_VIEW_ACCOUNT (view));
 
     /* Get the show_account_color value from gsettings */
@@ -1399,7 +1398,7 @@ gnc_tree_view_account_get_selected_account (GncTreeViewAccount *view)
     mode = gtk_tree_selection_get_mode(selection);
     if ((mode != GTK_SELECTION_SINGLE) && (mode != GTK_SELECTION_BROWSE))
     {
-        // JEAN
+        // JEAN SEE IF THIS NEEDS CLEANUP
         GList* acct_list = gnc_tree_view_account_get_selected_accounts(view);
         if (acct_list == NULL)
             return NULL;
