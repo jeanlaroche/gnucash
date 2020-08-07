@@ -208,7 +208,7 @@ gnc_account_commodity_from_type (AccountWindow * aw, gboolean update)
 
 /* Copy the account values to the GUI widgets */
 static void
-gnc_account_to_ui(AccountWindow *aw)
+gnc_account_to_ui_aux(AccountWindow *aw) // JEAN ACCOUNT TO GUI
 {
     Account *account;
     gnc_commodity * commodity;
@@ -285,6 +285,198 @@ gnc_account_to_ui(AccountWindow *aw)
     LEAVE(" ");
 }
 
+typedef struct
+{
+    gboolean match;
+    const gchar* str;
+    const gchar* (*fun)(const Account*)    ;
+    gint flag;
+    gboolean (*fun_flag)(const Account*)    ;
+    gnc_commodity *commodity;
+} equal_struct;
+
+// Function used to check that all accounts have identical descriptions
+static void
+all_equal_str (gpointer data, gpointer user_data)
+{
+    equal_struct* e_struct = user_data;
+    const gchar* string;
+    if (e_struct->str && !e_struct->match)
+        return;
+    string = e_struct->fun(data);
+    if (e_struct->str == NULL)
+    {
+        e_struct->str = string;
+        e_struct->match = TRUE;
+    }
+    else
+    {
+        e_struct->match &= (g_str_equal(e_struct->str, string));
+    }
+}
+
+static void
+all_equal_commodity (gpointer data, gpointer user_data)
+{
+    equal_struct* e_struct = user_data;
+    gnc_commodity *commodity;
+    if (e_struct->commodity && !e_struct->match)
+        return;
+    commodity = xaccAccountGetCommodity (data);
+    if (e_struct->commodity == NULL)
+    {
+        e_struct->commodity = commodity;
+        e_struct->match = TRUE;
+    }
+    else
+    {
+        e_struct->match &= gnc_commodity_equal(e_struct->commodity, commodity);
+    }
+}
+
+static void
+all_equal_boolean (gpointer data, gpointer user_data)
+{
+    equal_struct* e_struct = user_data;
+    if (e_struct->flag != -1 && !e_struct->match)
+        return;
+    gint flag = e_struct->fun_flag(data);
+    if (e_struct->flag == -1)
+    {
+        e_struct->flag = flag;
+        e_struct->match = TRUE;
+    }
+    else
+    {
+        e_struct->match &= (flag==e_struct->flag);
+    }
+}
+
+
+static void
+gnc_account_to_ui_aux_multi(AccountWindow *aw) // JEAN ACCOUNT TO GUI
+{
+    Account *account;
+    gnc_commodity * commodity;
+    const char *string;
+    GdkRGBA color;
+    gboolean flag, nonstd_scu;
+    gint index;
+    
+    ENTER("%p", aw);
+    account = aw_get_account (aw);
+    if (!account)
+    {
+        LEAVE("no account");
+        return;
+    }
+    
+    gtk_entry_set_text(GTK_ENTRY(aw->name_entry), "Multiple names");
+    
+    // DESCRIPTION
+    equal_struct e_struct = {FALSE,NULL,xaccAccountGetDescription,FALSE,NULL,NULL};
+    g_list_foreach (aw->acct_list, all_equal_str, &e_struct);
+    if (e_struct.match)
+        gtk_entry_set_text(GTK_ENTRY(aw->description_entry), e_struct.str);
+    else
+        gtk_entry_set_text(GTK_ENTRY(aw->description_entry), "Multiple values");
+
+    // COLOR
+    e_struct.fun = xaccAccountGetColor;
+    e_struct.str = NULL;
+    e_struct.match = FALSE;
+    g_list_foreach (aw->acct_list, all_equal_str, &e_struct);
+
+    if (!e_struct.match || !e_struct.str)
+        string = DEFAULT_COLOR;
+    else
+        string = e_struct.str;
+    
+    if (!gdk_rgba_parse (&color, string))
+        gdk_rgba_parse (&color, DEFAULT_COLOR);
+    
+    gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(aw->color_entry_button), &color);
+    
+    // COMMODITY
+    e_struct.commodity = NULL;
+    e_struct.match = FALSE;
+    g_list_foreach (aw->acct_list, all_equal_commodity, &e_struct);
+    if (e_struct.match)
+    {
+        commodity = e_struct.commodity;
+        gnc_general_select_set_selected (GNC_GENERAL_SELECT (aw->commodity_edit), commodity);
+    }
+    else
+    {
+        commodity = NULL; // COMMODITY: What should I do here?
+        // JEAN THIS DOES NOT WORK.
+        gtk_entry_set_text(GTK_ENTRY(aw->commodity_edit), "Multiple values");
+    }
+    gnc_account_commodity_from_type (aw, FALSE);
+    
+    // SKIP THIS
+//    nonstd_scu = xaccAccountGetNonStdSCU (account);
+//    if (nonstd_scu)
+//    {
+//        index = xaccAccountGetCommoditySCUi(account);
+//        index = log10(index) + 1;
+//    }
+//    else
+//    {
+//        index = 0;
+//    }
+//    gtk_combo_box_set_active(GTK_COMBO_BOX(aw->account_scu), index);
+//
+//    string = xaccAccountGetCode (account);
+//    if (string == NULL) string = "";
+//    gtk_entry_set_text(GTK_ENTRY(aw->code_entry), string);
+    
+//    string = xaccAccountGetNotes (account);
+//    if (string == NULL) string = "";
+//
+//    gtk_text_buffer_set_text (aw->notes_text_buffer, string, strlen(string));
+    
+    e_struct.fun_flag = xaccAccountGetTaxRelated;
+    e_struct.match = TRUE;
+    e_struct.flag = -1;
+    g_list_foreach (aw->acct_list, all_equal_boolean, &e_struct);
+    gtk_toggle_button_set_inconsistent (GTK_TOGGLE_BUTTON (aw->tax_related_button),
+                                        !e_struct.match);
+    if (e_struct.match)
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (aw->tax_related_button),
+                                      e_struct.flag);
+
+    e_struct.fun_flag = xaccAccountGetPlaceholder;
+    e_struct.match = TRUE;
+    e_struct.flag = -1;
+    g_list_foreach (aw->acct_list, all_equal_boolean, &e_struct);
+    gtk_toggle_button_set_inconsistent (GTK_TOGGLE_BUTTON (aw->placeholder_button),
+                                        !e_struct.match);
+    if (e_struct.match)
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (aw->placeholder_button),
+                                      e_struct.flag);
+
+//    flag = xaccAccountGetPlaceholder (account);
+//    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (aw->placeholder_button),
+//                                  flag);
+    
+    flag = xaccAccountGetHidden (account);
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (aw->hidden_button),
+                                  flag);
+    
+    set_auto_interest_box (aw);
+    LEAVE(" ");
+}
+
+/* Copy the account values to the GUI widgets */
+static void
+gnc_account_to_ui(AccountWindow *aw) // JEAN ACCOUNT TO GUI
+{
+    if (!aw->multi_account)
+        gnc_account_to_ui_aux(aw);
+    else
+        gnc_account_to_ui_aux_multi(aw);
+}
 
 static gboolean
 gnc_account_create_transfer_balance (QofBook *book,
@@ -1920,7 +2112,18 @@ gnc_ui_edit_account_window_aux (GtkWindow *parent, Account *account, GList* acct
     gnc_gui_component_watch_entity_type (aw->component_id,
                                          GNC_ID_ACCOUNT,
                                          QOF_EVENT_MODIFY | QOF_EVENT_DESTROY);
-
+    // JEAN: Disable some entries if we're in multi-account mode.
+//    GtkWidget * name_entry;
+//    GtkWidget * description_entry;
+//    GtkWidget * color_entry_button;
+//    GtkWidget * color_default_button;
+//    GtkWidget * code_entry;
+    if (aw->multi_account)
+    {
+        gtk_widget_set_sensitive (aw->name_entry, FALSE);
+        gtk_widget_set_sensitive (aw->account_scu, FALSE);
+        gtk_widget_set_sensitive (aw->code_entry, FALSE);
+    }
     gtk_window_present(GTK_WINDOW(aw->dialog));
 }
 
