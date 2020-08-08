@@ -76,7 +76,7 @@ void gnc_ui_edit_account_window (GtkWindow *parent, Account *account);
  *  @param acct_list This parameter specifies the list of accounts whose data
  *  will be edited.
  */
-void gnc_ui_edit_account_list_window(GtkWindow *parent, GList* acct_list);
+void gnc_ui_edit_account_list_window (GtkWindow *parent, GList* acct_list);
 
 
 /** Display a window for creating a new account.  This function will

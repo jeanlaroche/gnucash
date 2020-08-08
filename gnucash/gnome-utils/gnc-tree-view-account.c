@@ -748,8 +748,8 @@ gnc_tree_view_account_new_with_root (Account *root, gboolean show_root)
     view = g_object_new (GNC_TYPE_TREE_VIEW_ACCOUNT,
                          "name", "gnc-id-account-tree", NULL);
 
-    GtkTreeSelection *selection = gtk_tree_view_get_selection (GTK_TREE_VIEW(view));
-    gtk_tree_selection_set_mode (selection,GTK_SELECTION_MULTIPLE);
+    GtkTreeSelection *selection = gtk_tree_view_get_selection (GTK_TREE_VIEW (view));
+    gtk_tree_selection_set_mode (selection, GTK_SELECTION_MULTIPLE);
 
     priv = GNC_TREE_VIEW_ACCOUNT_GET_PRIVATE(GNC_TREE_VIEW_ACCOUNT (view));
 

@@ -243,7 +243,7 @@ gnc_account_commodity_from_type (AccountWindow * aw, gboolean update)
 
 /* Copy the account values to the GUI widgets */
 static void
-gnc_account_to_ui_aux(AccountWindow *aw) // JEAN ACCOUNT TO GUI
+gnc_account_to_ui_aux (AccountWindow *aw) // JEAN ACCOUNT TO GUI
 {
     Account *account;
     gnc_commodity * commodity;
@@ -335,9 +335,9 @@ typedef struct // JEAN: clean this up, maybe move to multi_info?
     gboolean match;
     gboolean first;
     const gchar* str;
-    const gchar* (*fun)(const Account*)    ;
+    const gchar* (*fun)(const Account*);
     gint flag;
-    gboolean (*fun_flag)(const Account*)    ;
+    gboolean (*fun_flag)(const Account*);
     gnc_commodity *commodity;
     Account *parent;
     gchar* def_string;
@@ -698,7 +698,7 @@ gnc_ui_to_account(AccountWindow *aw)
             LEAVE("no account");
             return;
         }
-        acc_list = g_list_prepend(acc_list, account);
+        acc_list = g_list_prepend (acc_list, account);
     }
     else
         acc_list = aw->acct_list;
@@ -865,7 +865,7 @@ gnc_ui_to_account(AccountWindow *aw)
     }
     LEAVE(" ");
     if (!aw->multi_account)
-        g_list_free(acc_list);
+        g_list_free (acc_list);
 }
 
 
@@ -1650,7 +1650,7 @@ gnc_account_placeholder_changed_cb (GtkWidget *widget, gpointer data)
     AccountWindow *aw = data;
     if (!aw->multi_match_info.freeze_cb)
     {
-        gtk_toggle_button_set_inconsistent(GTK_TOGGLE_BUTTON(aw->placeholder_button), FALSE);
+        gtk_toggle_button_set_inconsistent (GTK_TOGGLE_BUTTON(aw->placeholder_button), FALSE);
         aw->multi_match_info.placeholder_match = TRUE;
     }
 }
@@ -1661,7 +1661,7 @@ gnc_account_hidden_changed_cb (GtkWidget *widget, gpointer data)
     AccountWindow *aw = data;
     if (!aw->multi_match_info.freeze_cb)
     {
-        gtk_toggle_button_set_inconsistent(GTK_TOGGLE_BUTTON(aw->hidden_button), FALSE);
+        gtk_toggle_button_set_inconsistent (GTK_TOGGLE_BUTTON(aw->hidden_button), FALSE);
         aw->multi_match_info.hidden_match = TRUE;
     }
 }
@@ -1672,7 +1672,7 @@ gnc_account_tax_related_changed_cb (GtkWidget *widget, gpointer data)
     AccountWindow *aw = data;
     if (!aw->multi_match_info.freeze_cb)
     {
-        gtk_toggle_button_set_inconsistent(GTK_TOGGLE_BUTTON(aw->tax_related_button), FALSE);
+        gtk_toggle_button_set_inconsistent (GTK_TOGGLE_BUTTON(aw->tax_related_button), FALSE);
         aw->multi_match_info.tax_related_match = TRUE;
     }
 }
@@ -2316,7 +2316,7 @@ gnc_ui_edit_account_window_aux (GtkWindow *parent, Account *account, GList* acct
     }
 
     aw = g_new0 (AccountWindow, 1);
-    aw->multi_account = acct_list != NULL && g_list_length(acct_list) > 1;
+    aw->multi_account = acct_list != NULL && g_list_length (acct_list) > 1;
     aw->acct_list = acct_list;
 
     aw->book = gnc_account_get_book(account);
