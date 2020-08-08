@@ -1092,6 +1092,7 @@ gnc_plugin_page_account_tree_selection_changed_cb (GtkTreeSelection *selection,
     gboolean subaccounts;
     gboolean is_readwrite = !qof_book_is_readonly(gnc_get_current_book());
     gboolean multi_account = FALSE;
+    gboolean same_parents = TRUE;
 
     g_return_if_fail(GNC_IS_PLUGIN_PAGE_ACCOUNT_TREE(page));
 
@@ -1107,8 +1108,18 @@ gnc_plugin_page_account_tree_selection_changed_cb (GtkTreeSelection *selection,
         GList* acct_list = gnc_tree_view_account_get_selected_accounts (GNC_TREE_VIEW_ACCOUNT (view));
         if (acct_list)
         {
+            Account* parent = NULL;
             account = acct_list->data;
+            parent = gnc_account_get_parent (account);
             multi_account = g_list_length (acct_list) > 1;
+            for (GList* iter = acct_list->next; iter; iter=iter->next)
+            {
+                if (gnc_account_get_parent (iter->data) != parent)
+                {
+                    same_parents = FALSE;
+                    break;
+                }
+            }
         }
         sensitive = (account != NULL);
         g_list_free (acct_list);
@@ -1124,6 +1135,12 @@ gnc_plugin_page_account_tree_selection_changed_cb (GtkTreeSelection *selection,
                                "sensitive", sensitive);
     gnc_plugin_update_actions (action_group, actions_not_supporting_multi_select,
                                "sensitive", !multi_account);
+    if (!same_parents)
+    {
+        const gchar* foo[] = {"EditEditAccountAction", NULL};
+        gnc_plugin_update_actions (action_group, foo,
+                                   "sensitive", FALSE);
+    }
     g_signal_emit (page, plugin_page_signals[ACCOUNT_SELECTED], 0, account);
 
     action = gtk_action_group_get_action (action_group, "EditRenumberSubaccountsAction");
@@ -1172,7 +1189,7 @@ gnc_plugin_page_account_tree_cmd_open_account (GtkAction *action,
 
 static void
 gnc_plugin_page_account_tree_cmd_open_subaccounts (GtkAction *action,
-        GncPluginPageAccountTree *page)
+                                                   GncPluginPageAccountTree *page)
 {
     Account *account;
 
